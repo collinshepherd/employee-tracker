@@ -544,20 +544,42 @@ const addRole = () => {
         },
       ])
       .then((answers) => {
-        let sql = `INSERT INTO role (title, salary, department_id)
+        let duplicate = false;
+        let sql = `SELECT 
+        role.title
+        FROM role;`;
+
+        db.query(sql, (err, result) => {
+          if (err) console.log(err);
+          else {
+            result.forEach((role) => {
+              if (answers.newRole === role.title) {
+                duplicate = true;
+                console.log(
+                  `${answers.newRole} is already a role. Please try again.`
+                );
+                addRole();
+              }
+            });
+          }
+
+          if (!duplicate) {
+            sql = `INSERT INTO role (title, salary, department_id)
       VALUES (?, ?, (SELECT id FROM department WHERE name = ?));`;
 
-        db.query(
-          sql,
-          [answers.newRole, answers.salary, answers.selectedDepartment],
-          (err) => {
-            if (err) console.log(err);
-            else {
-              console.log("Role Added Successfully");
-              promptUser();
-            }
+            db.query(
+              sql,
+              [answers.newRole, answers.salary, answers.selectedDepartment],
+              (err) => {
+                if (err) console.log(err);
+                else {
+                  console.log("Role Added Successfully");
+                  promptUser();
+                }
+              }
+            );
           }
-        );
+        });
       });
   });
 };
@@ -672,9 +694,89 @@ const viewDepartmentBudget = () => {
   });
 };
 
-const addDepartment = () => {};
+const addDepartment = () => {
+  let sql = `SELECT
+  department.name
+  FROM department;`;
 
-const removeDepartment = () => {};
+  let departmentArray = [];
+
+  db.query(sql, (err, departmentResult) => {
+    if (err) console.log(err);
+
+    inquirer
+      .prompt([
+        {
+          name: "selectedDepartment",
+          type: "input",
+          message: "Enter the name of the new department:",
+        },
+      ])
+      .then((answers) => {
+        let duplicate = false;
+        departmentResult.forEach((department) => {
+          if (answers.selectedDepartment === department.name) {
+            console.log(
+              `${answers.selectedDepartment} is already a department name. Please try again.`
+            );
+            duplicate = true;
+            addDepartment();
+          }
+        });
+
+        if (!duplicate) {
+          let sql = `INSERT INTO department (name)
+        VALUES (?)`;
+
+          db.query(sql, [answers.selectedDepartment], (err) => {
+            if (err) console.log(err);
+            else {
+              console.log(`${answers.selectedDepartment} Added Successfully`);
+              promptUser();
+            }
+          });
+        }
+      });
+  });
+};
+
+const removeDepartment = () => {
+  let departmentArray = [];
+
+  let sql = `SELECT 
+    department.name
+    FROM department`;
+
+  db.query(sql, (err, departmentName) => {
+    if (err) console.log(err);
+    else {
+      departmentName.forEach((department) =>
+        departmentArray.push(department.name)
+      );
+    }
+
+    inquirer
+      .prompt([
+        {
+          name: "selectedDepartment",
+          type: "list",
+          message: "Which department would you like to remove?",
+          choices: departmentArray,
+        },
+      ])
+      .then((answers) => {
+        let sql = `DELETE FROM department WHERE department.name = ?;`;
+
+        db.query(sql, [answers.selectedDepartment], (err) => {
+          if (err) console.log(err);
+          else {
+            console.log(`${answers.selectedDepartment} Successfully Deleted`);
+            promptUser();
+          }
+        });
+      });
+  });
+};
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
