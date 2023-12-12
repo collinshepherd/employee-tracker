@@ -27,6 +27,7 @@ const promptUser = () => {
         message: "Please select an option:",
         choices: [
           "View All Employees",
+          "View All Employees By Department",
           "View Employee By Manager",
           "Update Employee Role",
           "Update Employee Manager",
@@ -36,7 +37,6 @@ const promptUser = () => {
           "Add Role",
           "Remove Role",
           "View All Departments",
-          "View All Employees By Department",
           "View Department Budgets",
           "Add Department",
           "Remove Department",
@@ -76,7 +76,7 @@ const promptUser = () => {
           updateEmployeeManager();
           break;
 
-        case "View all Roles":
+        case "View All Roles":
           viewAllRoles();
           break;
 
@@ -102,6 +102,7 @@ const promptUser = () => {
 
         case "View Employee By Manager":
           viewEmployeeByManager();
+          break;
 
         case "Exit": {
           process.exit();
@@ -326,13 +327,15 @@ const addEmployee = () => {
         .then((answers) => {
           let managerId;
 
-          managersResult.forEach((manager) => {
-            if (answers.managerName === manager.name) {
-              managerId = manager.id;
-            }
-          });
-
-          console.log(managerId);
+          if (answers.managerName === "None") {
+            managerId = null;
+          } else {
+            managersResult.forEach((manager) => {
+              if (answers.managerName === manager.name) {
+                managerId = manager.id;
+              }
+            });
+          }
 
           let sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id)
         VALUES (?, ?, (SELECT id FROM role WHERE title = ?), ?);`;
@@ -403,10 +406,12 @@ const viewEmployeeByManager = () => {
     CONCAT(employee.first_name," ",employee.last_name) AS name, employee.id 
     FROM employee WHERE manager_id IS NULL;`;
 
-  db.query(sql, (err, result) => {
+  let managersArray = [];
+
+  db.query(sql, (err, managersResult) => {
     if (err) console.log(err);
     else {
-      console.log(result);
+      managersResult.forEach((manager) => managersArray.push(manager.name));
     }
     inquirer
       .prompt([
@@ -419,16 +424,17 @@ const viewEmployeeByManager = () => {
       ])
       .then((answers) => {
         let managerId;
+
         managersResult.forEach((manager) => {
-          if (answers.newManager === manager.name) {
+          if (answers.managerName === manager.name) {
             managerId = manager.id;
           }
         });
-        console.log("test1");
+
         let sql = `SELECT
         CONCAT(employee.first_name," ",employee.last_name) AS name
         FROM employee WHERE manager_id = ?;`;
-        db.query(sql, (err, result) => {
+        db.query(sql, [managerId], (err, result) => {
           if (err) console.log(err);
           else {
             console.table(result);
@@ -438,6 +444,237 @@ const viewEmployeeByManager = () => {
       });
   });
 };
+
+const viewEmployeesByDepartment = () => {
+  let sql = `SELECT
+  CONCAT(employee.first_name, " ", employee.last_name) AS "name"
+  , department.name AS "department"
+  FROM employee
+  JOIN role ON employee.role_id = role.id
+  JOIN department ON role.department_id = department.id`;
+
+  let departmentArray = [];
+
+  db.query(sql, (err, employeeAndDepartment) => {
+    if (err) console.log(err);
+
+    let sql = `SELECT 
+    department.name
+    FROM department`;
+
+    db.query(sql, (err, departmentName) => {
+      if (err) console.log(err);
+      else {
+        departmentName.forEach((department) =>
+          departmentArray.push(department.name)
+        );
+      }
+
+      inquirer
+        .prompt([
+          {
+            name: "selectedDepartment",
+            type: "list",
+            message:
+              "Which department would you like to see the employees for?",
+            choices: departmentArray,
+          },
+        ])
+        .then((answers) => {
+          let namesArray = [];
+
+          employeeAndDepartment.forEach((employee) => {
+            if (answers.selectedDepartment === employee.department) {
+              namesArray.push(employee.name);
+            }
+          });
+          console.log(answers.selectedDepartment, "Department");
+          console.table(namesArray);
+          promptUser();
+        });
+    });
+  });
+};
+
+const viewAllRoles = () => {
+  let sql = `SELECT 
+  role.title as "roles"
+  FROM role;`;
+
+  db.query(sql, (err, result) => {
+    if (err) console.log(err);
+    else {
+      console.table(result);
+      promptUser();
+    }
+  });
+};
+
+const addRole = () => {
+  let departmentArray = [];
+
+  let sql = `SELECT 
+    department.name
+    FROM department`;
+
+  db.query(sql, (err, departmentName) => {
+    if (err) console.log(err);
+    else {
+      departmentName.forEach((department) =>
+        departmentArray.push(department.name)
+      );
+    }
+    inquirer
+      .prompt([
+        {
+          name: "newRole",
+          type: "input",
+          message: "What is the new role called?",
+        },
+        {
+          name: "salary",
+          type: "number",
+          message: "What is the salary for this role?",
+        },
+        {
+          name: "selectedDepartment",
+          type: "list",
+          message: "Which department is this in?",
+          choices: departmentArray,
+        },
+      ])
+      .then((answers) => {
+        let sql = `INSERT INTO role (title, salary, department_id)
+      VALUES (?, ?, (SELECT id FROM department WHERE name = ?));`;
+
+        db.query(
+          sql,
+          [answers.newRole, answers.salary, answers.selectedDepartment],
+          (err) => {
+            if (err) console.log(err);
+            else {
+              console.log("Role Added Successfully");
+              promptUser();
+            }
+          }
+        );
+      });
+  });
+};
+
+const removeRole = () => {
+  let sql = `SELECT 
+  role.title as "roles"
+  FROM role;`;
+
+  let rolesArray = ["Cancel"];
+
+  db.query(sql, (err, result) => {
+    if (err) console.log(err);
+    else {
+      result.forEach((role) => rolesArray.push(role.roles));
+    }
+
+    inquirer
+      .prompt([
+        {
+          name: "selectedRole",
+          type: "list",
+          message: "Which role would you like to remove?",
+          choices: rolesArray,
+        },
+      ])
+      .then((answers) => {
+        if (answers.selectedRole === "Cancel") {
+          promptUser();
+        } else {
+          let sql = `
+        DELETE FROM role WHERE role.title = ?;`;
+
+          db.query(sql, [answers.selectedRole], (err) => {
+            if (err) {
+              console.log(
+                `${answers.selectedRole} is in use by an employee. Please select a different role`
+              );
+              removeRole();
+            } else {
+              console.log("Role Removed Successfully");
+              promptUser();
+            }
+          });
+        }
+      });
+  });
+};
+
+const viewAllDepartments = () => {
+  let sql = `SELECT
+  department.name AS "department"
+  FROM department;`;
+
+  db.query(sql, (err, result) => {
+    if (err) console.log(err);
+    else {
+      console.table(result);
+      promptUser();
+    }
+  });
+};
+
+const viewDepartmentBudget = () => {
+  let departmentArray = [];
+
+  let sql = `SELECT 
+    department.name
+    FROM department`;
+
+  db.query(sql, (err, departmentName) => {
+    if (err) console.log(err);
+    else {
+      departmentName.forEach((department) =>
+        departmentArray.push(department.name)
+      );
+    }
+
+    inquirer
+      .prompt([
+        {
+          name: "selectedDepartment",
+          type: "list",
+          message: "Which department would you like to see the employees for?",
+          choices: departmentArray,
+        },
+      ])
+      .then((answers) => {
+        let totalBudget = 0;
+
+        let sql = `SELECT
+    CONCAT(employee.first_name, " ", employee.last_name) AS "name"
+    , department.name AS "department", role.salary
+    FROM employee
+    JOIN role ON employee.role_id = role.id
+    JOIN department ON role.department_id = department.id`;
+
+        db.query(sql, (err, employeeResult) => {
+          if (err) console.log(err);
+
+          employeeResult.forEach((employee) => {
+            if (employee.department === answers.selectedDepartment) {
+              totalBudget += parseInt(employee.salary);
+            }
+          });
+
+          console.log(answers.selectedDepartment, "Budget");
+          console.log("Total: ", totalBudget);
+          promptUser();
+        });
+      });
+  });
+};
+
+const addDepartment = () => {};
+
+const removeDepartment = () => {};
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
