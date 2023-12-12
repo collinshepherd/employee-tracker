@@ -1,13 +1,17 @@
+// Importing and requiring everything for the application
 const express = require("express");
 const mysql = require("mysql2");
 const inquirer = require("inquirer");
 
+// Initializing the app and setting the port
 const PORT = process.env.PORT || 3001;
 const app = express();
 
+// Express Middleware
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+// Connecting to the database
 const db = mysql.createConnection(
   {
     host: "localhost",
@@ -18,6 +22,7 @@ const db = mysql.createConnection(
   console.log("Connected to the employee_db database")
 );
 
+// Questions function that will show all the choices and call the correct function after its selected
 const promptUser = () => {
   inquirer
     .prompt([
@@ -45,6 +50,8 @@ const promptUser = () => {
       },
     ])
     .then((answers) => {
+      // Switch for each possible answer from the inquirer list
+      // Inside each case they call the function that performs what they are supposed to do
       const { choices } = answers;
       console.log(choices);
       switch (choices) {
@@ -105,12 +112,15 @@ const promptUser = () => {
           break;
 
         case "Exit": {
+          console.log("Goodbye!");
           process.exit();
         }
       }
     });
 };
 
+// All of the upcoming functions do basically as the name says but any difference will be noted
+// Displays all employee names in a table into the console
 const viewAllEmployees = async () => {
   const sql = `SELECT
     employee.id, employee.first_name, employee.last_name
@@ -131,6 +141,7 @@ const viewAllEmployees = async () => {
   });
 };
 
+// Asks the user and will run through to update an employees role
 const updateEmployeeRole = () => {
   let sql = `SELECT 
     employee.first_name, employee.last_name, employee.id
@@ -201,6 +212,7 @@ const updateEmployeeRole = () => {
   });
 };
 
+// Asks the user and will run through updating an employees manager
 const updateEmployeeManager = () => {
   let sql = `SELECT 
     CONCAT(employee.first_name," ",employee.last_name) AS name, employee.id 
@@ -274,6 +286,7 @@ const updateEmployeeManager = () => {
   });
 };
 
+// Adds a new employee to the database
 const addEmployee = () => {
   let sql = `SELECT 
     CONCAT(employee.first_name," ",employee.last_name) AS name, employee.id 
@@ -355,6 +368,7 @@ const addEmployee = () => {
   });
 };
 
+// Removes an existing employee from the database
 const removeEmployee = () => {
   let sql = `SELECT 
     employee.first_name, employee.last_name, employee.id
@@ -401,6 +415,7 @@ const removeEmployee = () => {
   });
 };
 
+// Asks which manager you would like to see their employees and then shows all of their employees
 const viewEmployeeByManager = () => {
   let sql = `SELECT 
     CONCAT(employee.first_name," ",employee.last_name) AS name, employee.id 
@@ -445,6 +460,7 @@ const viewEmployeeByManager = () => {
   });
 };
 
+// Asks which department you would like to see and then shows all employees in that department
 const viewEmployeesByDepartment = () => {
   let sql = `SELECT
   CONCAT(employee.first_name, " ", employee.last_name) AS "name"
@@ -496,6 +512,7 @@ const viewEmployeesByDepartment = () => {
   });
 };
 
+// Shows you all of the roles in the console log in a table
 const viewAllRoles = () => {
   let sql = `SELECT 
   role.title as "roles"
@@ -510,6 +527,7 @@ const viewAllRoles = () => {
   });
 };
 
+// This adds a role to the database and also will check to make sure that it isn't a duplicate role
 const addRole = () => {
   let departmentArray = [];
 
@@ -584,6 +602,7 @@ const addRole = () => {
   });
 };
 
+// This will remove a role as long as there are not any employees already assigned to the role you try to remove
 const removeRole = () => {
   let sql = `SELECT 
   role.title as "roles"
@@ -629,6 +648,7 @@ const removeRole = () => {
   });
 };
 
+// This will show all of the departments in the database in the console in a table
 const viewAllDepartments = () => {
   let sql = `SELECT
   department.name AS "department"
@@ -643,6 +663,7 @@ const viewAllDepartments = () => {
   });
 };
 
+// This will ask the user which department they want to know the budget for and then will output the total cost of that department (All of the employees salaries added together)
 const viewDepartmentBudget = () => {
   let departmentArray = [];
 
@@ -694,6 +715,7 @@ const viewDepartmentBudget = () => {
   });
 };
 
+// This will allow the user to add a new department as long as it does not exist already
 const addDepartment = () => {
   let sql = `SELECT
   department.name
@@ -740,8 +762,9 @@ const addDepartment = () => {
   });
 };
 
+// This will let the user remove a department as long as there are no employees current assigned to any roles in that specific department
 const removeDepartment = () => {
-  let departmentArray = [];
+  let departmentArray = ["None"];
 
   let sql = `SELECT 
     department.name
@@ -765,15 +788,23 @@ const removeDepartment = () => {
         },
       ])
       .then((answers) => {
-        let sql = `DELETE FROM department WHERE department.name = ?;`;
+        if (answers.selectedDepartment === "None") {
+          promptUser();
+        } else {
+          let sql = `DELETE FROM department WHERE department.name = ?;`;
 
-        db.query(sql, [answers.selectedDepartment], (err) => {
-          if (err) console.log(err);
-          else {
-            console.log(`${answers.selectedDepartment} Successfully Deleted`);
-            promptUser();
-          }
-        });
+          db.query(sql, [answers.selectedDepartment], (err) => {
+            if (err) {
+              console.log(
+                `The ${answers.selectedDepartment} department has employees inside. Please choose an empty department to remove it`
+              );
+              removeDepartment();
+            } else {
+              console.log(`${answers.selectedDepartment} Successfully Deleted`);
+              promptUser();
+            }
+          });
+        }
       });
   });
 };
