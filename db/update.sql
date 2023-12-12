@@ -16,6 +16,32 @@
 -- VALUES (?, ?, (SELECT id FROM role WHERE title = `${?}`), ?);
 
 -- DELETE FROM employee WHERE employee.first_name = ? AND employee.last_name = ?;
-SELECT 
-    CONCAT(employee.first_name," ",employee.last_name) AS name, employee.id 
-    FROM employee WHERE manager_id IS NULL;
+
+-- SELECT 
+--     CONCAT(employee.first_name," ",employee.last_name) AS name, employee.id 
+--     FROM employee WHERE manager_id IS NULL;
+
+-- SELECT
+-- CONCAT(employee.first_name, " ", employee.last_name) AS "name"
+-- , department.name AS "department"
+-- FROM employee
+
+-- SELECT 
+-- department.name
+-- FROM department
+
+-- SELECT 
+-- role.title
+-- FROM role;
+
+-- INSERT INTO role (title, salary, department_id)
+-- VALUES (?, ?, (SELECT id FROM department WHERE name = ?));
+
+-- DELETE FROM role WHERE role.title = ?;
+
+SELECT
+CONCAT(employee.first_name, " ", employee.last_name) AS "name"
+, department.name AS "department", role.salary
+FROM employee
+JOIN role ON employee.role_id = role.id
+JOIN department ON role.department_id = department.id
