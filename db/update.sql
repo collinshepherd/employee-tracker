@@ -39,9 +39,14 @@
 
 -- DELETE FROM role WHERE role.title = ?;
 
-SELECT
-CONCAT(employee.first_name, " ", employee.last_name) AS "name"
-, department.name AS "department", role.salary
-FROM employee
-JOIN role ON employee.role_id = role.id
-JOIN department ON role.department_id = department.id
+-- SELECT
+-- CONCAT(employee.first_name, " ", employee.last_name) AS "name"
+-- , department.name AS "department", role.salary
+-- FROM employee
+-- JOIN role ON employee.role_id = role.id
+-- JOIN department ON role.department_id = department.id
+
+-- INSERT INTO department (name)
+-- VALUES (?)
+
+DELETE FROM department WHERE department.name = ?;
