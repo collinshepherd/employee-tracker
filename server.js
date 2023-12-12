@@ -3,6 +3,12 @@ const express = require("express");
 const mysql = require("mysql2");
 const inquirer = require("inquirer");
 
+// Styling imports
+const figlet = require("figlet");
+const chalk = require("chalk");
+
+const log = console.log;
+
 // Initializing the app and setting the port
 const PORT = process.env.PORT || 3001;
 const app = express();
@@ -112,8 +118,15 @@ const promptUser = () => {
           break;
 
         case "Exit": {
-          console.log("Goodbye!");
-          process.exit();
+          figlet("Goodbye!!", function (err, data) {
+            if (err) {
+              console.log("Something went wrong...");
+              console.dir(err);
+              return;
+            }
+            log(chalk.blue.bold(data));
+            process.exit();
+          });
         }
       }
     });
@@ -135,8 +148,16 @@ const viewAllEmployees = async () => {
     if (err) {
       console.log(err);
     } else {
-      console.table(result);
-      promptUser();
+      figlet("-----Employees-----", function (err, data) {
+        if (err) {
+          console.log("Something went wrong...");
+          console.dir(err);
+          return;
+        }
+        log(chalk.blue.bold(data));
+        console.table(result);
+        promptUser();
+      });
     }
   });
 };
@@ -810,7 +831,33 @@ const removeDepartment = () => {
 };
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  // console.log(`Server running on port ${PORT}`);
 });
 
-promptUser();
+const run = () => {
+  log(chalk.redBright.bold("==============================================="));
+  figlet(
+    "Employee Manager",
+    {
+      font: "doom",
+      horizontalLayout: "default",
+      verticalLayout: "default",
+      width: 60,
+      whitespaceBreak: true,
+    },
+    function (err, data) {
+      if (err) {
+        console.log("Something went wrong...");
+        console.dir(err);
+        return;
+      }
+      log(chalk.red.bold(data));
+      log(
+        chalk.redBright.bold("===============================================")
+      );
+      promptUser();
+    }
+  );
+};
+
+run();
