@@ -426,8 +426,12 @@ const removeEmployee = () => {
           }
         });
         db.query(sql, [firstName, lastName], (err) => {
-          if (err) console.log(err);
-          else {
+          if (err) {
+            console.log(
+              `${answers.selectedEmployee} is currently a manager, change employees under management by them first and then try again.`
+            );
+            promptUser();
+          } else {
             console.log("Employee Successfully Removed");
             promptUser();
           }
@@ -583,6 +587,7 @@ const addRole = () => {
         },
       ])
       .then((answers) => {
+        // Checks for a duplicate role and allows recurvisveness
         let duplicate = false;
         let sql = `SELECT 
         role.title
