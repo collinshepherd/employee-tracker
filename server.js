@@ -1,5 +1,4 @@
 // Importing and requiring everything for the application
-const express = require("express");
 const mysql = require("mysql2");
 const inquirer = require("inquirer");
 
@@ -11,11 +10,6 @@ const log = console.log;
 
 // Initializing the app and setting the port
 const PORT = process.env.PORT || 3001;
-const app = express();
-
-// Express Middleware
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
 
 // Connecting to the database
 const db = mysql.createConnection(
@@ -834,10 +828,6 @@ const removeDepartment = () => {
       });
   });
 };
-
-app.listen(PORT, () => {
-  // console.log(`Server running on port ${PORT}`);
-});
 
 const run = () => {
   log(chalk.redBright.bold("==============================================="));
